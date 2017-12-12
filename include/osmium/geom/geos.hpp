@@ -32,25 +32,18 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
 */
-
-#include <geos/version.h>
-#if defined(GEOS_VERSION_MAJOR) && defined(GEOS_VERSION_MINOR) && (GEOS_VERSION_MAJOR < 3 || (GEOS_VERSION_MAJOR == 3 && GEOS_VERSION_MINOR <= 5))
-
-#define OSMIUM_WITH_GEOS
-
 /**
  * @file
  *
  * This file contains code for conversion of OSM geometries into GEOS
  * geometries.
  *
- * Note that everything in this file is deprecated and only works up to
- * GEOS 3.5. It uses the GEOS C++ API which the GEOS project does not consider
- * to be a stable, external API. We probably should have used the GEOS C API
- * instead.
- *
  * @attention If you include this file, you'll need to link with `libgeos`.
  */
+#include <geos/version.h>
+#if defined(GEOS_VERSION_MAJOR) && defined(GEOS_VERSION_MINOR) && (GEOS_VERSION_MAJOR > 3 || (GEOS_VERSION_MAJOR == 3 && GEOS_VERSION_MINOR >= 6))
+#define GEOS_36
+#endif
 
 #include <algorithm>
 #include <cassert>
@@ -98,11 +91,26 @@ namespace osmium {
 
         namespace detail {
 
-            /// @deprecated
             class GEOSFactoryImpl {
 
+#ifdef GEOS_36
+                /**
+                 * The destructor of geos::geom::GeometryFactory is protected
+                 * since GEOS 3.6 and was replaced by the method destroy().
+                 */
+                struct GEOSGeometryFactoryDeleter {
+                    void operator()(geos::geom::GeometryFactory* f) {
+                        f->destroy();
+                    }
+                };
+#endif
+
                 std::unique_ptr<const geos::geom::PrecisionModel> m_precision_model;
+#ifdef GEOS_36
+                std::unique_ptr<geos::geom::GeometryFactory, GEOSGeometryFactoryDeleter> m_our_geos_factory;
+#else
                 std::unique_ptr<geos::geom::GeometryFactory> m_our_geos_factory;
+#endif
                 geos::geom::GeometryFactory* m_geos_factory;
 
                 std::unique_ptr<geos::geom::CoordinateSequence> m_coordinate_sequence;
@@ -129,13 +137,21 @@ namespace osmium {
                  */
                 OSMIUM_DEPRECATED explicit GEOSFactoryImpl(int /* srid */, int srid) :
                     m_precision_model(new geos::geom::PrecisionModel),
+#ifdef GEOS_36
+                    m_our_geos_factory(geos::geom::GeometryFactory::create(m_precision_model.get(), srid).release(), GEOSGeometryFactoryDeleter()),
+#else
                     m_our_geos_factory(new geos::geom::GeometryFactory{m_precision_model.get(), srid}),
+#endif
                     m_geos_factory(m_our_geos_factory.get()) {
                 }
 
                 explicit GEOSFactoryImpl(int srid) :
                     m_precision_model(new geos::geom::PrecisionModel),
+#ifdef GEOS_36
+                    m_our_geos_factory(geos::geom::GeometryFactory::create(m_precision_model.get(), srid).release(), GEOSGeometryFactoryDeleter()),
+#else
                     m_our_geos_factory(new geos::geom::GeometryFactory{m_precision_model.get(), srid}),
+#endif
                     m_geos_factory(m_our_geos_factory.get()) {
                 }
 
@@ -256,7 +272,6 @@ namespace osmium {
 
         } // namespace detail
 
-        /// @deprecated
         template <typename TProjection = IdentityProjection>
         using GEOSFactory = GeometryFactory<osmium::geom::detail::GEOSFactoryImpl, TProjection>;
 
@@ -265,7 +280,5 @@ namespace osmium {
 } // namespace osmium
 
 #undef THROW
-
-#endif
 
 #endif // OSMIUM_GEOM_GEOS_HPP

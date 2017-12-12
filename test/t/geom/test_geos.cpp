@@ -1,8 +1,6 @@
 
 #include <osmium/geom/geos.hpp>
 
-#ifdef OSMIUM_WITH_GEOS
-
 #include "catch.hpp"
 
 #include <osmium/geom/mercator_projection.hpp>
@@ -29,8 +27,13 @@ TEST_CASE("GEOS geometry factory - create point in web mercator") {
 }
 
 TEST_CASE("GEOS geometry factory - create point with externally created GEOS factory") {
+#ifdef GEOS_36
+    geos::geom::GeometryFactory* geos_factory = geos::geom::GeometryFactory::create().release();
+    osmium::geom::GEOSFactory<> factory{*geos_factory};
+#else
     geos::geom::GeometryFactory geos_factory;
     osmium::geom::GEOSFactory<> factory{geos_factory};
+#endif
 
     const std::unique_ptr<geos::geom::Point> point{factory.create_point(osmium::Location{3.2, 4.2})};
     REQUIRE(3.2 == point->getX());
@@ -147,6 +150,4 @@ TEST_CASE("GEOS geometry factory - create area with two outer and two inner ring
     const geos::geom::LineString* l1e = p1->getExteriorRing();
     REQUIRE(5 == l1e->getNumPoints());
 }
-
-#endif
 
