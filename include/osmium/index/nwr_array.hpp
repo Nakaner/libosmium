@@ -3,9 +3,9 @@
 
 /*
 
-This file is part of Osmium (http://osmcode.org/libosmium).
+This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2018 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2019 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -35,21 +35,33 @@ DEALINGS IN THE SOFTWARE.
 
 #include <osmium/osm/item_type.hpp>
 
+#include <array>
+
 namespace osmium {
 
+    /**
+     * Often some information must be kept separately for nodes, ways, and
+     * relations. Then this helper class becomes useful. It can keep three
+     * somethings (of type T) which can be accessed conveniently through
+     * the call operator.
+     */
     template <typename T>
     class nwr_array {
 
-        T m_sets[3];
+        std::array<T, 3> m_data;
 
     public:
 
-        T& operator()(osmium::item_type type) noexcept {
-            return m_sets[osmium::item_type_to_nwr_index(type)];
+        nwr_array() :
+            m_data() {
         }
 
-        const T& operator()(osmium::item_type type) const noexcept {
-            return m_sets[osmium::item_type_to_nwr_index(type)];
+        T& operator()(const osmium::item_type type) noexcept {
+            return m_data[osmium::item_type_to_nwr_index(type)];
+        }
+
+        const T& operator()(const osmium::item_type type) const noexcept {
+            return m_data[osmium::item_type_to_nwr_index(type)];
         }
 
     }; // class nwr_array

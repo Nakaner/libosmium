@@ -3,9 +3,9 @@
 
 /*
 
-This file is part of Osmium (http://osmcode.org/libosmium).
+This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2018 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2019 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -34,6 +34,7 @@ DEALINGS IN THE SOFTWARE.
 */
 
 #include <osmium/builder/osm_object_builder.hpp>
+#include <osmium/io/detail/string_util.hpp>
 #include <osmium/io/error.hpp>
 #include <osmium/memory/buffer.hpp>
 #include <osmium/osm/box.hpp>
@@ -46,8 +47,6 @@ DEALINGS IN THE SOFTWARE.
 #include <osmium/osm/timestamp.hpp>
 #include <osmium/osm/types.hpp>
 #include <osmium/osm/way.hpp>
-
-#include <utf8.h>
 
 #include <cstdint>
 #include <cstdlib>
@@ -155,11 +154,11 @@ namespace osmium {
                     }
                     if (*s == '%') {
                         ++s;
-                        utf8::utf32to8(&value, &value + 1, std::back_inserter(result));
+                        append_codepoint_as_utf8(value, std::back_inserter(result));
                         *data = s;
                         return;
                     }
-                    value <<= 4;
+                    value <<= 4U;
                     if (*s >= '0' && *s <= '9') {
                         value += *s - '0';
                     } else if (*s >= 'a' && *s <= 'f') {
@@ -200,7 +199,9 @@ namespace osmium {
             }
 
             // Arbitrary limit how long integers can get
-            constexpr const int max_int_len = 16;
+            enum {
+                max_int_len = 16
+            };
 
             template <typename T>
             inline T opl_parse_int(const char** s) {
