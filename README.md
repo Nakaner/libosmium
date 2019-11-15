@@ -1,4 +1,21 @@
-# Libosmium
+# Libosmium + default_metadata_values Patch
+
+## default_metadata_values Patch
+
+**This is a patched version of Libosmium with an additional option called
+`default_metadata_values=true` for the XML and PBF output format. If you write
+a PBF or XML file without all metadata fields (e.g.
+`add_metadata=version+timestamp`), the normal version of Libosmium will not
+write the field you did not select. This is a problem for programs which do
+not support, in contrast to the .osm.pbf file format description, DenseNode
+blocks without all metadata fields being set. This affects at least the
+following libraries:
+
+* Libosmium <= 2.14.0 (i.e. Osm2pgsql 0.90 to 0.94)
+* Osmosis
+* osmctools (osmconvert)
+
+## Libosmium
 
 https://osmcode.org/libosmium
 
